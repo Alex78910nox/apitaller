@@ -1,0 +1,35 @@
+# Node.js
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/
+
+# Others
+*.sqlite
+*.bak
+
+# SQL files
+habitech_full.sql
+habitech_insert_data.sql
+habitech_postgres.sql
+archivos base de datos postgres scritp/
+
+# Optional: coverage, build, temp
+coverage/
+build/
+tmp/
