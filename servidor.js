@@ -20,6 +20,7 @@ app.get('/', (req, res) => {
                 body { font-family: Arial, sans-serif; background: #f4f4f4; color: #222; padding: 40px; }
                 .container { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #ccc; padding: 32px; max-width: 500px; margin: auto; }
                 h1 { color: #007bff; font-size: 2.5em; }
+                .version { color: #555; font-size: 1.1em; margin-bottom: 16px; }
                 p { font-size: 1.2em; }
                 code { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 1.1em; }
                 ul { padding-left: 18px; }
@@ -29,6 +30,7 @@ app.get('/', (req, res) => {
         <body>
             <div class="container">
                 <h1>API Habitech</h1>
+                <div class="version">Versión 1.1</div>
                 <p>Servidor activo. Ejemplos de uso:</p>
                 <ul>
                     <li><strong>GET</strong> <code>/api/usuarios</code> - Listar usuarios</li>
