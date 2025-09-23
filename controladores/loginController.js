@@ -101,11 +101,48 @@ router.post('/api/verificar-doble-factor', async (req, res) => {
 router.get('/api/residente-por-usuario/:usuario_id', async (req, res) => {
   const { usuario_id } = req.params;
   try {
-    const resultado = await pool.query('SELECT * FROM residentes WHERE usuario_id = $1', [usuario_id]);
+    // Hacer LEFT JOIN para obtener datos del departamento asociado
+    const consulta = `
+      SELECT r.*, d.id AS dept_id, d.numero, d.piso, d.dormitorios, d.banos, d.area_m2, d.renta_mensual, d.mantenimiento_mensual, d.estado, d.descripcion, d.servicios, d.imagenes, d.activo AS dept_activo, d.creado_en AS dept_creado_en
+      FROM residentes r
+      LEFT JOIN departamentos d ON r.departamento_id = d.id
+      WHERE r.usuario_id = $1
+    `;
+    const resultado = await pool.query(consulta, [usuario_id]);
     if (resultado.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Residente no encontrado para ese usuario' });
     }
-    res.json({ success: true, residente: resultado.rows[0] });
+    const row = resultado.rows[0];
+    const residente = {
+      id: row.id,
+      usuario_id: row.usuario_id,
+      departamento_id: row.departamento_id,
+      tipo_relacion: row.tipo_relacion,
+      fecha_ingreso: row.fecha_ingreso,
+      fecha_salida: row.fecha_salida,
+      nombre_contacto_emergencia: row.nombre_contacto_emergencia,
+      telefono_contacto_emergencia: row.telefono_contacto_emergencia,
+      es_principal: row.es_principal,
+      activo: row.activo,
+      creado_en: row.creado_en
+    };
+    const departamento = row.dept_id ? {
+      id: row.dept_id,
+      numero: row.numero,
+      piso: row.piso,
+      dormitorios: row.dormitorios,
+      banos: row.banos,
+      area_m2: row.area_m2,
+      renta_mensual: row.renta_mensual,
+      mantenimiento_mensual: row.mantenimiento_mensual,
+      estado: row.estado,
+      descripcion: row.descripcion,
+      servicios: row.servicios,
+      imagenes: row.imagenes,
+      activo: row.dept_activo,
+      creado_en: row.dept_creado_en
+    } : null;
+    res.json({ success: true, residente, departamento });
   } catch (error) {
     console.error('Error al buscar residente por usuario_id:', error);
     res.status(500).json({ success: false, message: 'Error en el servidor', error });
