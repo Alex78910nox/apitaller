@@ -97,6 +97,21 @@ router.post('/api/verificar-doble-factor', async (req, res) => {
   }
 });
 
+// Endpoint: obtener residente por usuario_id
+router.get('/api/residente-por-usuario/:usuario_id', async (req, res) => {
+  const { usuario_id } = req.params;
+  try {
+    const resultado = await pool.query('SELECT * FROM residentes WHERE usuario_id = $1', [usuario_id]);
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Residente no encontrado para ese usuario' });
+    }
+    res.json({ success: true, residente: resultado.rows[0] });
+  } catch (error) {
+    console.error('Error al buscar residente por usuario_id:', error);
+    res.status(500).json({ success: false, message: 'Error en el servidor', error });
+  }
+});
+
 module.exports = router;
 
 // --- ENDPOINT: Solicitar restablecimiento de contraseña ---
