@@ -30,7 +30,7 @@ app.get('/', (req, res) => {
         <body>
             <div class="container">
                 <h1>API Habitech</h1>
-                <div class="version">Versión 1.1</div>
+                <div class="version">Versión 1.2</div>
                 <p>Servidor activo. Ejemplos de uso:</p>
                 <ul>
                     <li><strong>GET</strong> <code>/api/usuarios</code> - Listar usuarios</li>

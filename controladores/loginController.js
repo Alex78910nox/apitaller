@@ -1,3 +1,21 @@
+// --- TWILIO SMS ---
+
+require('dotenv').config();
+const twilio = require('twilio');
+const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
+const twilioNumber = process.env.TWILIO_NUMBER;
+
+async function enviarSMS(destino, mensaje) {
+  try {
+    await twilioClient.messages.create({
+      body: mensaje,
+      from: twilioNumber,
+      to: destino
+    });
+  } catch (err) {
+    console.error('Error enviando SMS:', err);
+  }
+}
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../configuracion/baseDatos');
@@ -22,6 +40,63 @@ router.post('/api/login', async (req, res) => {
     res.status(500).json({ success: false, message: 'Error en el servidor', error });
   }
 });
+
+// --- REGISTRO Y VERIFICACIÓN DOBLE FACTOR ---
+// Endpoint para iniciar registro con doble factor
+router.post('/api/registro-doble-factor', async (req, res) => {
+  const { correo, hash_contrasena, nombre, apellido, telefono, numero_documento, rol_id } = req.body;
+  try {
+    // Verificar si ya existe el usuario
+    const existe = await pool.query('SELECT id FROM usuarios WHERE correo = $1 OR telefono = $2', [correo, telefono]);
+    if (existe.rows.length > 0) {
+      return res.status(400).json({ success: false, message: 'El correo o teléfono ya está registrado' });
+    }
+    // Generar códigos de verificación
+    const codigoCorreo = Math.floor(100000 + Math.random() * 900000).toString();
+    const codigoTelefono = Math.floor(100000 + Math.random() * 900000).toString();
+    // Guardar usuario como pendiente (activo: false) y guardar los códigos
+    await pool.query(
+      `INSERT INTO usuarios (correo, hash_contrasena, nombre, apellido, telefono, numero_documento, rol_id, activo, codigo_verif_correo, codigo_verif_telefono)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,false,$8,$9)`,
+      [correo, hash_contrasena, nombre, apellido, telefono, numero_documento, rol_id, codigoCorreo, codigoTelefono]
+    );
+    // Enviar código al correo
+    await enviarCorreo(
+      correo,
+      'Código de verificación Habitech',
+      `Tu código de verificación de correo es: ${codigoCorreo}`
+    );
+  // Enviar SMS real con Twilio
+  await enviarSMS(telefono, `Tu código de verificación de teléfono es: ${codigoTelefono}`);
+    res.json({ success: true, message: 'Usuario registrado como pendiente. Se enviaron los códigos de verificación.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error en el servidor', error });
+  }
+});
+
+// Endpoint para verificar ambos códigos y activar usuario
+router.post('/api/verificar-doble-factor', async (req, res) => {
+  const { correo, codigoCorreo, codigoTelefono } = req.body;
+  try {
+    // Buscar usuario pendiente con ambos códigos
+    const result = await pool.query(
+      `SELECT id FROM usuarios WHERE correo = $1 AND codigo_verif_correo = $2 AND codigo_verif_telefono = $3 AND activo = false`,
+      [correo, codigoCorreo, codigoTelefono]
+    );
+    if (result.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Códigos incorrectos o usuario ya verificado' });
+    }
+    // Activar usuario y limpiar los códigos
+    await pool.query(
+      `UPDATE usuarios SET activo = true, codigo_verif_correo = NULL, codigo_verif_telefono = NULL WHERE correo = $1`,
+      [correo]
+    );
+    res.json({ success: true, message: 'Usuario verificado y activado correctamente' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error en el servidor', error });
+  }
+});
+
 module.exports = router;
 
 // --- ENDPOINT: Solicitar restablecimiento de contraseña ---
