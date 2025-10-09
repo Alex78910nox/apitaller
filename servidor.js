@@ -55,10 +55,12 @@ const { registrarGetEndpoints } = require('./controladores/getEndpoints');
 const { registrarPostEndpoints } = require('./controladores/postEndpoints');
 const { registrarPutEndpoints } = require('./controladores/putEndpoints');
 const { registrarDeleteEndpoints } = require('./controladores/deleteEndpoints');
+const { registrarMensajesChatEndpoints } = require('./controladores/mensajesChat');
 registrarGetEndpoints(app);
 registrarPostEndpoints(app);
 registrarPutEndpoints(app);
 registrarDeleteEndpoints(app);
+registrarMensajesChatEndpoints(app);
 
 const iniciarservidor = async() => {
     try{
