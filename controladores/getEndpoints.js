@@ -46,6 +46,33 @@ function registrarGetEndpoints(app) {
       }
     });
   });
+
+  // Endpoint para obtener notificaciones por usuario_id
+  app.get('/api/notificaciones/usuario/:usuario_id', async (req, res) => {
+    try {
+      const usuario_id = req.params.usuario_id;
+      const resultado = await pool.query(
+        `SELECT * FROM notificaciones WHERE usuario_id = $1 ORDER BY creado_en DESC`,
+        [usuario_id]
+      );
+
+      if (resultado.rows.length === 0) {
+        return res.status(404).json({
+          exito: false,
+          mensaje: `No se encontraron notificaciones para el usuario con id ${usuario_id}`
+        });
+      }
+
+      res.json({
+        exito: true,
+        mensaje: `Notificaciones obtenidas para el usuario con id ${usuario_id}`,
+        datos: resultado.rows
+      });
+    } catch (error) {
+      console.error(`Error al obtener notificaciones para usuario_id ${usuario_id}:`, error);
+      res.status(500).json({ error: `Error al obtener notificaciones para el usuario` });
+    }
+  });
 }
 
 module.exports = { registrarGetEndpoints };
