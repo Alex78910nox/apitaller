@@ -157,18 +157,22 @@ const crypto = require('crypto');
 // Nodemailer para envío de correos
 const nodemailer = require('nodemailer');
 
-// Configura el transporter con timeout reducido y conexión SMTP directa
+// Configura el transporter con SSL/TLS explícito y timeouts más largos
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
+  port: 465, // Puerto SSL
+  secure: true, // SSL/TLS
   auth: {
     user: 'alexsapereyra@gmail.com',
     pass: 'yonx mygh tqdk bgea'
   },
-  connectionTimeout: 5000, // 5 segundos de timeout
-  greetingTimeout: 5000,
-  socketTimeout: 5000
+  connectionTimeout: 10000,    // 10 segundos
+  greetingTimeout: 10000,     // 10 segundos
+  socketTimeout: 10000,       // 10 segundos
+  tls: {
+    rejectUnauthorized: true, // Validar certificado
+    minVersion: 'TLSv1.2'    // Usar TLS moderno
+  }
 });
 
 async function enviarCorreo(destino, asunto, texto) {
