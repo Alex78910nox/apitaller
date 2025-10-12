@@ -1,9 +1,36 @@
 // --- TWILIO SMS ---
-
 require('dotenv').config();
 const twilio = require('twilio');
 const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
 const twilioNumber = process.env.TWILIO_NUMBER;
+const express = require('express');
+const router = express.Router();
+const { pool } = require('../configuracion/baseDatos');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
+
+// Configurar el transporter de Nodemailer con Gmail
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // true para 465, false para otros puertos
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  },
+  tls: {
+    rejectUnauthorized: false // Para desarrollo local
+  }
+});
+
+// Verificar la configuración del correo al inicio
+transporter.verify(function(error, success) {
+  if (error) {
+    console.error('Error en la configuración del correo:', error);
+  } else {
+    console.log('Servidor de correo listo para enviar mensajes');
+  }
+});
 
 async function enviarSMS(destino, mensaje) {
   try {
@@ -16,9 +43,6 @@ async function enviarSMS(destino, mensaje) {
     console.error('Error enviando SMS:', err);
   }
 }
-const express = require('express');
-const router = express.Router();
-const { pool } = require('../configuracion/baseDatos');
 
 // Endpoint para login de usuario (texto plano, sin devolver contraseña)
 router.post('/api/login', async (req, res) => {
@@ -152,45 +176,50 @@ router.get('/api/residente-por-usuario/:usuario_id', async (req, res) => {
 module.exports = router;
 
 // --- ENDPOINT: Solicitar restablecimiento de contraseña ---
-const crypto = require('crypto');
-
-// Nodemailer para envío de correos
-const nodemailer = require('nodemailer');
-
-// Configura el transporter con SSL/TLS explícito y timeouts más largos
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465, // Puerto SSL
-  secure: true, // SSL/TLS
-  auth: {
-    user: 'alexsapereyra@gmail.com',
-    pass: 'yonx mygh tqdk bgea'
-  },
-  connectionTimeout: 10000,    // 10 segundos
-  greetingTimeout: 10000,     // 10 segundos
-  socketTimeout: 10000,       // 10 segundos
-  tls: {
-    rejectUnauthorized: true, // Validar certificado
-    minVersion: 'TLSv1.2'    // Usar TLS moderno
-  }
-});
 
 async function enviarCorreo(destino, asunto, texto) {
+  console.log('Iniciando envío de correo...');
+  console.log('Destinatario:', destino);
+  
+  // Validar formato de correo
+  if (!destino || !destino.includes('@') || !destino.includes('.')) {
+    throw new Error(`Correo inválido: ${destino}`);
+  }
+  
   try {
-    const info = await transporter.sendMail({
-      from: 'alexsapereyra@gmail.com',
+    console.log('Preparando mensaje...');
+    const mailOptions = {
+      from: {
+        name: 'Habitech System',
+        address: process.env.EMAIL_USER
+      },
       to: destino,
       subject: asunto,
-      text: texto
-    });
-    console.log('Email enviado:', info.response);
+      text: texto,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2c3e50;">Habitech - Sistema de Gestión</h2>
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-top: 20px;">
+            ${texto.replace(/\n/g, '<br>')}
+          </div>
+          <p style="color: #666; font-size: 12px; margin-top: 20px;">
+            Este es un correo automático, por favor no responder.
+          </p>
+        </div>`
+    };
+
+    console.log('Enviando correo a través de Nodemailer...');
+    const info = await transporter.sendMail(mailOptions);
+    
+    console.log('Correo enviado exitosamente');
+    console.log('ID del mensaje:', info.messageId);
+    
     return info;
   } catch (error) {
-    console.error('Error al enviar email:', error);
-    // Agregar más detalles del error para debug
-    if (error.code === 'ETIMEDOUT') {
-      console.error('Timeout al enviar email - revisa la conexión SMTP');
-    }
+    console.error('Error al enviar email:', {
+      mensaje: error.message,
+      codigo: error.code
+    });
     throw error;
   }
 }
@@ -208,22 +237,46 @@ router.post('/api/solicitar-restablecimiento', async (req, res) => {
     // Guardar token en la base de datos
     await pool.query('UPDATE usuarios SET reset_token = $1 WHERE correo = $2', [token, correo]);
     // Enviar el token por correo al usuario
-    await enviarCorreo(
-      correo,
-      'Habitech - Restablecimiento de contraseña',
-      `Hola,
+    try {
+      await enviarCorreo(
+        correo,
+        'Habitech - Token de Restablecimiento [' + new Date().toISOString() + ']',
+        `¡Hola! Este es un mensaje de prueba de Habitech.
 
-Recibiste este correo porque solicitaste restablecer tu contraseña en Habitech.
+Has solicitado restablecer tu contraseña en la aplicación Habitech.
 
-Tu token de restablecimiento es:
+Para confirmar que este correo está llegando correctamente, por favor utiliza el siguiente token:
 
-${token}
+TOKEN: ${token}
 
-Si no solicitaste este cambio, ignora este mensaje.
+Hora de envío: ${new Date().toLocaleString()}
 
-¡Saludos del equipo Habitech!`
-    );
-    res.json({ success: true, message: 'Token de restablecimiento generado', token });
+Si no solicitaste este cambio, puedes ignorar este mensaje.
+
+Por favor, revisa también tu carpeta de spam si no ves este mensaje en tu bandeja de entrada.
+
+Saludos,
+El equipo de Habitech`
+      );
+      res.json({ success: true, message: 'Token de restablecimiento generado', token });
+    } catch (emailError) {
+      console.error('Error al enviar el correo:', emailError);
+      // Revertir el token guardado ya que el correo falló
+      await pool.query('UPDATE usuarios SET reset_token = NULL WHERE correo = $1', [correo]);
+      if (emailError.response) {
+        res.status(500).json({ 
+          success: false, 
+          message: 'Error al enviar el correo de restablecimiento',
+          error: emailError.response.body 
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: 'Error al enviar el correo de restablecimiento',
+          error: emailError.message 
+        });
+      }
+    }
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error en el servidor', error });
   }
