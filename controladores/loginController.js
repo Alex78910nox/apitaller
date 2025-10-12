@@ -157,21 +157,18 @@ const crypto = require('crypto');
 // Nodemailer para envío de correos
 const nodemailer = require('nodemailer');
 
-// Configura el transporter (usa variables de entorno en producción)
+// Configura el transporter (ejemplo con Gmail)
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
-  host: process.env.EMAIL_HOST, // opcional si usas SMTP custom
-  port: process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : undefined,
-  secure: process.env.EMAIL_SECURE === 'true' ? true : undefined,
+  service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER || 'habitech60@gmail.com',
-    pass: process.env.EMAIL_PASS || 'zsfc yjiy tgbn nkmg'
+    user: 'alexsapereyra@gmail.com', // Cambia por tu correo
+    pass: 'yonx mygh tqdk bgea' // Cambia por tu contraseña de aplicación
   }
 });
 
 async function enviarCorreo(destino, asunto, texto) {
   await transporter.sendMail({
-    from: 'habitech60@gmail.com',
+    from: 'alexsapereyra@gmail.com',
     to: destino,
     subject: asunto,
     text: texto
@@ -226,38 +223,5 @@ router.post('/api/restablecer-contrasena', async (req, res) => {
     res.json({ success: true, message: 'Contraseña restablecida correctamente' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error en el servidor', error });
-  }
-});
-// prueba de envío de correo
-router.post('/api/prueba-correo', async (req, res) => {
-  const { destino, asunto, mensaje } = req.body;
-
-  try {
-    await enviarCorreo(destino, asunto, mensaje);
-    res.json({ success: true, message: 'Correo enviado correctamente' });
-  } catch (error) {
-    console.error('Error al enviar el correo:', error);
-    res.status(500).json({ success: false, message: 'Error al enviar el correo', error });
-  }
-});
-
-// Endpoint GET de prueba (para probar rápido desde navegador/Postman sin body)
-// Uso: GET /api/prueba-correo?destino=correo@dominio.com&asunto=Hola&mensaje=Texto
-router.get('/api/prueba-correo', async (req, res) => {
-  const { destino, asunto, mensaje } = req.query;
-  // Si faltan parámetros, solo informar que el endpoint está activo y cómo usarlo
-  if (!destino || !asunto || !mensaje) {
-    return res.json({
-      success: true,
-      message: 'Endpoint activo. Usa POST con JSON { destino, asunto, mensaje } o GET con query params destino, asunto, mensaje.',
-      ejemploGET: '/api/prueba-correo?destino=correo@dominio.com&asunto=Hola&mensaje=Texto',
-    });
-  }
-  try {
-    await enviarCorreo(destino, asunto, mensaje);
-    res.json({ success: true, message: 'Correo enviado correctamente (GET)' });
-  } catch (error) {
-    console.error('Error al enviar el correo (GET):', error);
-    res.status(500).json({ success: false, message: 'Error al enviar el correo', error });
   }
 });
