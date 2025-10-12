@@ -161,14 +161,14 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'alexsapereyra@gmail.com', // Cambia por tu correo
-    pass: 'yonx mygh tqdk bgea' // Cambia por tu contraseña de aplicación
+    user: 'habitech60@gmail.com', // Nuevo correo
+    pass: 'zsfc yjiy tgbn nkmg' // Nueva contraseña de aplicación
   }
 });
 
 async function enviarCorreo(destino, asunto, texto) {
   await transporter.sendMail({
-    from: 'alexsapereyra@gmail.com',
+    from: 'habitech60@gmail.com',
     to: destino,
     subject: asunto,
     text: texto
@@ -223,5 +223,17 @@ router.post('/api/restablecer-contrasena', async (req, res) => {
     res.json({ success: true, message: 'Contraseña restablecida correctamente' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error en el servidor', error });
+  }
+});
+// prueba de envío de correo
+router.post('/api/prueba-correo', async (req, res) => {
+  const { destino, asunto, mensaje } = req.body;
+
+  try {
+    await enviarCorreo(destino, asunto, mensaje);
+    res.json({ success: true, message: 'Correo enviado correctamente' });
+  } catch (error) {
+    console.error('Error al enviar el correo:', error);
+    res.status(500).json({ success: false, message: 'Error al enviar el correo', error });
   }
 });
