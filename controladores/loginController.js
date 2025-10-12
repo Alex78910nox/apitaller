@@ -157,22 +157,38 @@ const crypto = require('crypto');
 // Nodemailer para envío de correos
 const nodemailer = require('nodemailer');
 
-// Configura el transporter (ejemplo con Gmail)
+// Configura el transporter con timeout reducido y conexión SMTP directa
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
   auth: {
-    user: 'alexsapereyra@gmail.com', // Cambia por tu correo
-    pass: 'yonx mygh tqdk bgea' // Cambia por tu contraseña de aplicación
-  }
+    user: 'alexsapereyra@gmail.com',
+    pass: 'yonx mygh tqdk bgea'
+  },
+  connectionTimeout: 5000, // 5 segundos de timeout
+  greetingTimeout: 5000,
+  socketTimeout: 5000
 });
 
 async function enviarCorreo(destino, asunto, texto) {
-  await transporter.sendMail({
-    from: 'alexsapereyra@gmail.com',
-    to: destino,
-    subject: asunto,
-    text: texto
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: 'alexsapereyra@gmail.com',
+      to: destino,
+      subject: asunto,
+      text: texto
+    });
+    console.log('Email enviado:', info.response);
+    return info;
+  } catch (error) {
+    console.error('Error al enviar email:', error);
+    // Agregar más detalles del error para debug
+    if (error.code === 'ETIMEDOUT') {
+      console.error('Timeout al enviar email - revisa la conexión SMTP');
+    }
+    throw error;
+  }
 }
 
 router.post('/api/solicitar-restablecimiento', async (req, res) => {
