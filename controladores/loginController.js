@@ -6,31 +6,20 @@ const twilioNumber = process.env.TWILIO_NUMBER;
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../configuracion/baseDatos');
-const nodemailer = require('nodemailer');
+const brevo = require('@getbrevo/brevo');
 const crypto = require('crypto');
 
-// Configurar el transporter de Nodemailer con Gmail
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // true para 465, false para otros puertos
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false // Para desarrollo local
-  }
-});
+// Configurar Brevo para envío de correos
+let apiInstance = new brevo.TransactionalEmailsApi();
+let apiKey = apiInstance.authentications['apiKey'];
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
 // Verificar la configuración del correo al inicio
-transporter.verify(function(error, success) {
-  if (error) {
-    console.error('Error en la configuración del correo:', error);
-  } else {
-    console.log('Servidor de correo listo para enviar mensajes');
-  }
-});
+if (!process.env.BREVO_API_KEY) {
+  console.error('Error: BREVO_API_KEY no está definida en las variables de entorno');
+} else {
+  console.log('Brevo configurado correctamente');
+}
 
 async function enviarSMS(destino, mensaje) {
   try {
@@ -188,37 +177,39 @@ async function enviarCorreo(destino, asunto, texto) {
   
   try {
     console.log('Preparando mensaje...');
-    const mailOptions = {
-      from: {
-        name: 'Habitech System',
-        address: process.env.EMAIL_USER
-      },
-      to: destino,
-      subject: asunto,
-      text: texto,
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2c3e50;">Habitech - Sistema de Gestión</h2>
-          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-top: 20px;">
-            ${texto.replace(/\n/g, '<br>')}
-          </div>
-          <p style="color: #666; font-size: 12px; margin-top: 20px;">
-            Este es un correo automático, por favor no responder.
-          </p>
-        </div>`
-    };
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2c3e50;">Habitech - Sistema de Gestión</h2>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-top: 20px;">
+          ${texto.replace(/\n/g, '<br>')}
+        </div>
+        <p style="color: #666; font-size: 12px; margin-top: 20px;">
+          Este es un correo automático, por favor no responder.
+        </p>
+      </div>`;
 
-    console.log('Enviando correo a través de Nodemailer...');
-    const info = await transporter.sendMail(mailOptions);
+    let sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.subject = asunto;
+    sendSmtpEmail.htmlContent = htmlContent;
+    sendSmtpEmail.sender = { 
+      name: 'Habitech System', 
+      email: process.env.BREVO_FROM_EMAIL || 'noreply@habitech.com'
+    };
+    sendSmtpEmail.to = [{ email: destino }];
+    sendSmtpEmail.textContent = texto;
+
+    console.log('Enviando correo a través de Brevo...');
+    const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
     
     console.log('Correo enviado exitosamente');
-    console.log('ID del mensaje:', info.messageId);
+    console.log('ID del mensaje:', data.messageId);
     
-    return info;
+    return data;
   } catch (error) {
     console.error('Error al enviar email:', {
       mensaje: error.message,
-      codigo: error.code
+      codigo: error.code,
+      respuesta: error.response?.body
     });
     throw error;
   }
