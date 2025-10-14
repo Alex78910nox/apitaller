@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner QR - Control de Acceso</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .scanner-section {
+            margin-bottom: 30px;
+        }
+
+        #video {
+            width: 100%;
+            max-width: 500px;
+            border-radius: 10px;
+            border: 3px solid #667eea;
+            display: block;
+            margin: 0 auto 20px;
+            background: #000;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .manual-section {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .manual-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #374151;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            color: #065f46;
+        }
+
+        .result.error {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+        }
+
+        .result h4 {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .result-details {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .status-badge.entrada {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-badge.salida {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        #status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        #status.scanning {
+            background: #dbeafe;
+            color: #1e40af;
+            animation: pulse 2s infinite;
+        }
+
+        #status.stopped {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        #status.processing {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .device-info {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .device-info h4 {
+            color: #374151;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Escáner QR - Control de Acceso</h1>
+        <p class="subtitle">Sistema de registro de entrada y salida</p>
+
+        <!-- Información del Dispositivo -->
+        <div class="device-info">
+            <h4>📱 Información del Dispositivo</h4>
+            <div class="form-group">
+                <label for="dispositivo_id">ID del Dispositivo:</label>
+                <select id="dispositivo_id">
+                    <option value="1">Dispositivo 1 - Entrada Principal</option>
+                    <option value="2">Dispositivo 2 - Entrada Secundaria</option>
+                    <option value="3">Dispositivo 3 - Salida Principal</option>
+                    <option value="4">Dispositivo 4 - Salida Secundaria</option>
+                    <option value="5">Dispositivo 5 - Acceso Taller</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="tipo_acceso">Tipo de Acceso:</label>
+                <select id="tipo_acceso">
+                    <option value="entrada">🟢 Entrada</option>
+                    <option value="salida">🔴 Salida</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Estado del Escáner -->
+        <div id="status" class="stopped">
+            ⏸️ Escáner detenido
+        </div>
+
+        <!-- Sección del Escáner -->
+        <div class="scanner-section">
+            <video id="video" autoplay playsinline></video>
+            
+            <div class="controls">
+                <button class="btn btn-primary" onclick="iniciarEscaner()">
+                    📷 Iniciar Escáner
+                </button>
+                <button class="btn btn-danger" onclick="detenerEscaner()">
+                    ⏹️ Detener
+                </button>
+            </div>
+        </div>
+
+        <!-- Sección Manual -->
+        <div class="manual-section">
+            <h3>✍️ Validación Manual</h3>
+            <p style="color: #6b7280; font-size: 13px; margin-bottom: 15px;">
+                Si no tienes cámara o el código QR no escanea, pega el token aquí:
+            </p>
+            <div class="form-group">
+                <label for="qr_token_manual">Token QR:</label>
+                <input type="text" id="qr_token_manual" placeholder="HABITECH-1-abc123...">
+            </div>
+            <button class="btn btn-success" onclick="validarManual()" style="width: 100%;">
+                ✅ Validar Manualmente
+            </button>
+        </div>
+
+        <!-- Resultado -->
+        <div id="result" class="result"></div>
+    </div>
+
+    <!-- Librería jsQR para escanear códigos QR -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+    <script>
+        // Detectar automáticamente la URL de la API
+        // En producción usará el mismo dominio, en local usará localhost
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000'  // Desarrollo local
+            : window.location.origin;   // Producción (Render u otro)
+        
+        console.log('🌐 API URL detectada:', API_URL);
+        
+        let videoStream = null;
+        let scanning = false;
+        let processing = false; // Nueva bandera para evitar múltiples validaciones
+        let lastScannedCode = null;
+        let lastScanTime = 0;
+
+        const video = document.getElementById('video');
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        // Función para iniciar el escáner
+        async function iniciarEscaner() {
+            try {
+                // Solicitar acceso a la cámara
+                videoStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } // Usa cámara trasera en móviles
+                });
+                
+                video.srcObject = videoStream;
+                video.play();
+                scanning = true;
+                
+                document.getElementById('status').className = 'scanning';
+                document.getElementById('status').innerHTML = '🔍 Escaneando... Muestra el código QR';
+                
+                // Iniciar el escaneo
+                requestAnimationFrame(escanear);
+                
+            } catch (error) {
+                console.error('Error al acceder a la cámara:', error);
+                mostrarResultado('error', 'Error al acceder a la cámara', error.message);
+            }
+        }
+
+        // Función para escanear el código QR
+        function escanear() {
+            if (!scanning || video.readyState !== video.HAVE_ENOUGH_DATA) {
+                if (scanning) {
+                    requestAnimationFrame(escanear);
+                }
+                return;
+            }
+
+            // No escanear si estamos procesando
+            if (processing) {
+                if (scanning) {
+                    requestAnimationFrame(escanear);
+                }
+                return;
+            }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+            if (code) {
+                const currentTime = Date.now();
+                // Evitar escaneos duplicados (esperar 5 segundos entre escaneos del mismo código)
+                if (code.data !== lastScannedCode || currentTime - lastScanTime > 5000) {
+                    lastScannedCode = code.data;
+                    lastScanTime = currentTime;
+                    
+                    // Marcar como procesando para pausar el escaneo
+                    processing = true;
+                    
+                    // Validar el código QR
+                    validarQR(code.data);
+                }
+            }
+
+            if (scanning) {
+                requestAnimationFrame(escanear);
+            }
+        }
+
+        // Función para detener el escáner
+        function detenerEscaner() {
+            scanning = false;
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            document.getElementById('status').className = 'stopped';
+            document.getElementById('status').innerHTML = '⏸️ Escáner detenido';
+        }
+
+        // Función para validar el QR en el servidor
+        async function validarQR(qr_token) {
+            const dispositivo_id = document.getElementById('dispositivo_id').value;
+            const tipo = document.getElementById('tipo_acceso').value;
+
+            try {
+                document.getElementById('status').innerHTML = '⏳ Validando código QR...';
+                document.getElementById('status').className = 'processing';
+                
+                const response = await fetch(`${API_URL}/api/qr/validar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        qr_token: qr_token,
+                        dispositivo_id: parseInt(dispositivo_id),
+                        tipo: tipo
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Mostrar resultado exitoso
+                    mostrarResultado('success', '✅ Acceso Registrado Exitosamente', `
+                        <strong>${data.registro.usuario.nombre}</strong><br>
+                        <span class="status-badge ${data.registro.tipo}">${data.registro.tipo.toUpperCase()}</span><br>
+                        <small>📅 Hora: ${new Date(data.registro.fecha_hora).toLocaleString('es-ES')}</small><br>
+                        <small>📱 Dispositivo: ${data.registro.dispositivo_id}</small>
+                    `);
+                    
+                    // Sonido de éxito
+                    reproducirSonido('success');
+                    
+                    // Pausar el escaneo por 5 segundos
+                    document.getElementById('status').innerHTML = '✅ Registro exitoso - Esperando 5 segundos...';
+                    
+                    setTimeout(() => {
+                        processing = false; // Permitir nuevos escaneos
+                        if (scanning) {
+                            document.getElementById('status').className = 'scanning';
+                            document.getElementById('status').innerHTML = '🔍 Escaneando... Muestra el código QR';
+                        }
+                    }, 5000); // 5 segundos de cooldown
+                    
+                } else {
+                    // Mostrar error
+                    mostrarResultado('error', '❌ Acceso Denegado', data.message);
+                    reproducirSonido('error');
+                    
+                    // Pausar por 3 segundos en caso de error
+                    setTimeout(() => {
+                        processing = false;
+                        if (scanning) {
+                            document.getElementById('status').className = 'scanning';
+                            document.getElementById('status').innerHTML = '🔍 Escaneando... Muestra el código QR';
+                        }
+                    }, 3000);
+                }
+
+            } catch (error) {
+                console.error('Error al validar QR:', error);
+                mostrarResultado('error', '⚠️ Error de Conexión', 'No se pudo conectar con el servidor. Verifica que esté corriendo en ' + API_URL);
+                reproducirSonido('error');
+                
+                // Reintentar después de 3 segundos
+                setTimeout(() => {
+                    processing = false;
+                    if (scanning) {
+                        document.getElementById('status').className = 'scanning';
+                        document.getElementById('status').innerHTML = '🔍 Escaneando... Muestra el código QR';
+                    }
+                }, 3000);
+            }
+        }
+
+        // Función para validar manualmente
+        async function validarManual() {
+            const qr_token = document.getElementById('qr_token_manual').value.trim();
+            
+            if (!qr_token) {
+                alert('⚠️ Por favor ingresa un token QR');
+                return;
+            }
+
+            if (processing) {
+                alert('⏳ Ya hay una validación en proceso. Espera un momento.');
+                return;
+            }
+
+            processing = true;
+            await validarQR(qr_token);
+            document.getElementById('qr_token_manual').value = '';
+        }
+
+        // Función para mostrar resultado
+        function mostrarResultado(tipo, titulo, mensaje) {
+            const result = document.getElementById('result');
+            result.className = `result ${tipo}`;
+            result.style.display = 'block';
+            result.innerHTML = `
+                <h4>${titulo}</h4>
+                <div class="result-details">${mensaje}</div>
+            `;
+
+            // Ocultar después de 5 segundos
+            setTimeout(() => {
+                result.style.display = 'none';
+            }, 5000);
+        }
+
+        // Función para reproducir sonido (opcional)
+        function reproducirSonido(tipo) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            if (tipo === 'success') {
+                oscillator.frequency.value = 800;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            } else {
+                oscillator.frequency.value = 200;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            }
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+
+        // Detener el escáner al cerrar la página
+        window.addEventListener('beforeunload', detenerEscaner);
+
+        // Permitir Enter para validar manualmente
+        document.getElementById('qr_token_manual').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                validarManual();
+            }
+        });
+    </script>
+</body>
+</html>
