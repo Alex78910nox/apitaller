@@ -74,6 +74,7 @@ app.get('/', (req, res) => {
     `);
 });
 
+
 // Registrar el endpoint de login
 const loginController = require('./controladores/loginController');
 app.use(loginController);
@@ -81,6 +82,10 @@ app.use(loginController);
 // Registrar el controlador de QR
 const qrController = require('./controladores/qrController');
 app.use(qrController);
+
+// Registrar el controlador de pagos (Stripe)
+const pagosRouter = require('./controladores/pagos');
+app.use('/api/pagos', pagosRouter);
 
 // Importar y registrar los endpoints GET, POST, PUT y DELETE desde los controladores
 const { registrarGetEndpoints } = require('./controladores/getEndpoints');
