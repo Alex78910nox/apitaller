@@ -73,6 +73,34 @@ function registrarGetEndpoints(app) {
       res.status(500).json({ error: `Error al obtener notificaciones para el usuario` });
     }
   });
+
+  // Endpoint para obtener pagos por residente_id
+  app.get('/api/pagos/residente/:residente_id', async (req, res) => {
+    try {
+      const residente_id = req.params.residente_id;
+      const resultado = await pool.query(
+        `SELECT * FROM pagos WHERE residente_id = $1 ORDER BY fecha_pago DESC`,
+        [residente_id]
+      );
+
+      if (resultado.rows.length === 0) {
+        return res.status(404).json({
+          exito: false,
+          mensaje: `No se encontraron pagos para el residente con id ${residente_id}`
+        });
+      }
+
+      res.json({
+        exito: true,
+        mensaje: `Pagos obtenidos para el residente con id ${residente_id}`,
+        datos: resultado.rows,
+        total: resultado.rows.length
+      });
+    } catch (error) {
+      console.error(`Error al obtener pagos para residente_id ${residente_id}:`, error);
+      res.status(500).json({ error: `Error al obtener los pagos del residente` });
+    }
+  });
 }
 
 module.exports = { registrarGetEndpoints };
