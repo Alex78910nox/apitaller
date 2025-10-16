@@ -101,6 +101,34 @@ function registrarGetEndpoints(app) {
       res.status(500).json({ error: `Error al obtener los pagos del residente` });
     }
   });
+
+  // Endpoint para obtener métricas de consumo por departamento_id
+  app.get('/api/metricas_consumo/departamento/:departamento_id', async (req, res) => {
+    try {
+      const departamento_id = req.params.departamento_id;
+      const resultado = await pool.query(
+        `SELECT * FROM metricas_consumo WHERE departamento_id = $1 ORDER BY fecha_registro DESC`,
+        [departamento_id]
+      );
+
+      if (resultado.rows.length === 0) {
+        return res.status(404).json({
+          exito: false,
+          mensaje: `No se encontraron métricas de consumo para el departamento con id ${departamento_id}`
+        });
+      }
+
+      res.json({
+        exito: true,
+        mensaje: `Métricas de consumo obtenidas para el departamento con id ${departamento_id}`,
+        datos: resultado.rows,
+        total: resultado.rows.length
+      });
+    } catch (error) {
+      console.error(`Error al obtener métricas de consumo para departamento_id ${departamento_id}:`, error);
+      res.status(500).json({ error: `Error al obtener las métricas de consumo del departamento` });
+    }
+  });
 }
 
 module.exports = { registrarGetEndpoints };
