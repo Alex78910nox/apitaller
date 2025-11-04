@@ -16,7 +16,7 @@ router.post('/crear', async (req, res) => {
     // Stripe espera el monto en centavos
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(monto * 100),
-      currency: 'usd', // o la moneda que uses
+      currency: 'bob', // Bolivianos
       description: descripcion,
       metadata: { residenteId: String(residenteId) }
     });
@@ -42,7 +42,7 @@ router.post('/crear-sesion-checkout', async (req, res) => {
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: 'bob', // Bolivianos
             product_data: {
               name: descripcion || 'Pago de servicio Habitech',
             },
@@ -158,7 +158,7 @@ router.put('/:id/estado', async (req, res) => {
                   </tr>
                   <tr style="background: white;">
                     <td style="padding: 12px; border: 1px solid #ddd;"><strong>Monto:</strong></td>
-                    <td style="padding: 12px; border: 1px solid #ddd; font-size: 18px; font-weight: bold; color: #667eea;">$${parseFloat(pago.monto).toFixed(2)} USD</td>
+                    <td style="padding: 12px; border: 1px solid #ddd; font-size: 18px; font-weight: bold; color: #667eea;">Bs ${parseFloat(pago.monto).toFixed(2)}</td>
                   </tr>
                   <tr style="background: #e8f5e9;">
                     <td style="padding: 12px; border: 1px solid #ddd;"><strong>Estado:</strong></td>
