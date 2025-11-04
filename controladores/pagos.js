@@ -112,7 +112,7 @@ router.put('/:id/estado', async (req, res) => {
         
         // Obtener información del residente
         const residenteQuery = await pool.query(
-          'SELECT r.*, u.email, u.nombre FROM residentes r JOIN usuarios u ON r.usuario_id = u.id WHERE r.id = $1',
+          'SELECT r.*, u.correo, u.nombre FROM residentes r JOIN usuarios u ON r.usuario_id = u.id WHERE r.id = $1',
           [pago.residente_id]
         );
 
@@ -182,12 +182,12 @@ router.put('/:id/estado', async (req, res) => {
             email: process.env.BREVO_FROM_EMAIL || 'noreply@habitech.com'
           };
           sendSmtpEmail.to = [{
-            email: residente.email,
+            email: residente.correo,
             name: residente.nombre
           }];
 
           await apiInstance.sendTransacEmail(sendSmtpEmail);
-          console.log(`✓ Factura enviada exitosamente a ${residente.email} para pago #${pago.id}`);
+          console.log(`✓ Factura enviada exitosamente a ${residente.correo} para pago #${pago.id}`);
         } else {
           console.log('No se encontró información del residente con id:', pago.residente_id);
         }
