@@ -108,11 +108,15 @@ router.put('/:id/estado', async (req, res) => {
     // Si el estado es "pagado", enviar factura por correo
     if (estado === 'pagado') {
       try {
+        console.log('Intentando enviar factura para pago:', pago);
+        
         // Obtener información del residente
         const residenteQuery = await pool.query(
           'SELECT r.*, u.email, u.nombre FROM residentes r JOIN usuarios u ON r.usuario_id = u.id WHERE r.id = $1',
           [pago.residente_id]
         );
+
+        console.log('Resultado query residente:', residenteQuery.rows);
 
         if (residenteQuery.rows.length > 0) {
           const residente = residenteQuery.rows[0];
@@ -183,10 +187,13 @@ router.put('/:id/estado', async (req, res) => {
           }];
 
           await apiInstance.sendTransacEmail(sendSmtpEmail);
-          console.log(`Factura enviada a ${residente.email} para pago #${pago.id}`);
+          console.log(`✓ Factura enviada exitosamente a ${residente.email} para pago #${pago.id}`);
+        } else {
+          console.log('No se encontró información del residente con id:', pago.residente_id);
         }
       } catch (emailError) {
         console.error('Error al enviar factura por correo:', emailError);
+        console.error('Stack trace:', emailError.stack);
         // No fallar la respuesta si el correo falla
       }
     }
